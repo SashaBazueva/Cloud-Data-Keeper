@@ -5,16 +5,13 @@ import java.net.Socket;
 
 public class Handler implements Runnable {
 
-    private Socket client;
     private static BufferedReader in;
     private static BufferedWriter out;
-    private StringBuilder sb;
+    private String userName;
 
     public Handler(Socket client) throws IOException {
-        this.client = client;
         in = new BufferedReader(new InputStreamReader(client.getInputStream()));
         out = new BufferedWriter(new OutputStreamWriter(client.getOutputStream()));
-        sb = new StringBuilder();
     }
 
     @Override
@@ -22,11 +19,14 @@ public class Handler implements Runnable {
         try {
             while (true) {
                 String message = in.readLine();
-                System.out.println(message);
-                message = "Server: " + message.replace("Client: ", "") + "\n";
-                System.out.println(message.replace("\n", ""));
-                out.write(message);
-                out.flush();
+                userName = extractUserName(message);
+                message = message.replace(userName + ": ", "");
+                if (!message.trim().isEmpty()) {
+                    System.out.println(userName + ": " + message);
+                    System.out.println("Server: " + message);
+                    out.write(message + "\n");
+                    out.flush();
+                }
             }
         } catch (IOException e) {
             throw new RuntimeException("ERROR in reading message!!!", e);
@@ -38,5 +38,18 @@ public class Handler implements Runnable {
                 throw new RuntimeException("Can't close connection", e);
             }
         }
+    }
+
+    private String extractUserName(String message) {
+        String tmp = message.substring(0, 11); //имя пользователя может быть длинной в 10 символов + 1 символ на двоеточие
+        char[] chars = tmp.toCharArray();
+        int index = 1;
+        for (int i = 0; i < chars.length; i++) {
+            if (chars[i] == ':') {
+                index = i;
+                break;
+            }
+        }
+        return message.substring(0, index);
     }
 }
